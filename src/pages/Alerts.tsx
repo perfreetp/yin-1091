@@ -14,7 +14,7 @@ import {
   Shield,
 } from 'lucide-react';
 import { useStore } from '@/store/useStore';
-import type { Alert } from '@/types';
+import type { Alert, FollowUpTask } from '@/types';
 
 type FilterTab = 'all' | 'high_score' | 'overdue_visit' | 'risk_change';
 
@@ -60,9 +60,75 @@ function getSeverityBadge(severity: Alert['severity']) {
 }
 
 export default function Alerts() {
-  const { patients, alerts, resolveAlert } = useStore();
+  const { patients, alerts, resolveAlert, addFollowUpTask } = useStore();
   const [activeTab, setActiveTab] = useState<FilterTab>('all');
   const [showResolved, setShowResolved] = useState(false);
+  const [actionFeedback, setActionFeedback] = useState<Record<string, string>>({});
+
+  const showFeedback = (alertId: string, msg: string) => {
+    setActionFeedback((prev) => ({ ...prev, [alertId]: msg }));
+    setTimeout(() => {
+      setActionFeedback((prev) => {
+        const next = { ...prev };
+        delete next[alertId];
+        return next;
+      });
+    }, 2000);
+  };
+
+  const handleAddVisit = (alert: Alert) => {
+    const patient = patients.find((p) => p.id === alert.patientId);
+    const task: FollowUpTask = {
+      id: `FU${Date.now()}`,
+      patientId: alert.patientId,
+      type: 'visit',
+      status: 'pending',
+      scheduledDate: new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10),
+      completedDate: null,
+      result: null,
+      needsExtraVisit: false,
+      doctorConclusion: null,
+      createdBy: '王医生',
+    };
+    addFollowUpTask(task);
+    showFeedback(alert.id, `已为${patient?.name ?? '患者'}生成门诊随访任务`);
+  };
+
+  const handleSendReminder = (alert: Alert) => {
+    const patient = patients.find((p) => p.id === alert.patientId);
+    const task: FollowUpTask = {
+      id: `FU${Date.now()}`,
+      patientId: alert.patientId,
+      type: 'sms',
+      status: 'completed',
+      scheduledDate: new Date().toISOString().slice(0, 10),
+      completedDate: new Date().toISOString().slice(0, 10),
+      result: `已发送短信提醒至${patient?.phone ?? '患者手机'}`,
+      needsExtraVisit: false,
+      doctorConclusion: null,
+      createdBy: '王医生',
+    };
+    addFollowUpTask(task);
+    showFeedback(alert.id, `已发送短信提醒至${patient?.name ?? '患者'}`);
+  };
+
+  const handleMakeCall = (alert: Alert) => {
+    const patient = patients.find((p) => p.id === alert.patientId);
+    const task: FollowUpTask = {
+      id: `FU${Date.now()}`,
+      patientId: alert.patientId,
+      type: 'phone',
+      status: 'completed',
+      scheduledDate: new Date().toISOString().slice(0, 10),
+      completedDate: new Date().toISOString().slice(0, 10),
+      result: `已拨打电话${patient?.phone ?? ''}，患者知晓复诊安排`,
+      needsExtraVisit: false,
+      doctorConclusion: null,
+      createdBy: '王医生',
+    };
+    addFollowUpTask(task);
+    showFeedback(alert.id, `已记录拨打${patient?.name ?? '患者'}电话`);
+  };
 
   const unresolvedAlerts = alerts.filter((a) => !a.isResolved);
   const resolvedAlerts = alerts.filter((a) => a.isResolved);
@@ -230,19 +296,31 @@ export default function Alerts() {
                 </div>
 
                 <div className="flex items-center gap-2 mt-3 pt-3 border-t border-midnight-800/50">
-                  <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-midnight-800/50 text-slate-400 hover:text-white hover:bg-midnight-700/50 text-xs transition-colors">
+                  <button
+                    onClick={() => handleAddVisit(alert)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-midnight-800/50 text-slate-400 hover:text-white hover:bg-midnight-700/50 text-xs transition-colors"
+                  >
                     <CalendarPlus className="w-3.5 h-3.5" />
                     加号
                   </button>
-                  <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-midnight-800/50 text-slate-400 hover:text-white hover:bg-midnight-700/50 text-xs transition-colors">
+                  <button
+                    onClick={() => handleSendReminder(alert)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-midnight-800/50 text-slate-400 hover:text-white hover:bg-midnight-700/50 text-xs transition-colors"
+                  >
                     <Send className="w-3.5 h-3.5" />
                     发提醒
                   </button>
-                  <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-midnight-800/50 text-slate-400 hover:text-white hover:bg-midnight-700/50 text-xs transition-colors">
+                  <button
+                    onClick={() => handleMakeCall(alert)}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-midnight-800/50 text-slate-400 hover:text-white hover:bg-midnight-700/50 text-xs transition-colors"
+                  >
                     <Phone className="w-3.5 h-3.5" />
                     拨打电话
                   </button>
                   <div className="flex-1" />
+                  {actionFeedback[alert.id] && (
+                    <span className="text-xs text-mint-500 animate-slide-in">{actionFeedback[alert.id]}</span>
+                  )}
                   <button
                     onClick={() => resolveAlert(alert.id)}
                     className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-mint-500/10 text-mint-500 hover:bg-mint-500/20 text-xs font-medium transition-colors"

@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import type { Patient, PSQIAssessment, FollowUpTask, Alert } from '@/types';
 import { patients as mockPatients, assessments as mockAssessments, followUpTasks as mockFollowUpTasks, alerts as mockAlerts } from '@/data/mockData';
 
@@ -23,49 +24,56 @@ interface ClinicStore {
   getRiskLevel: (score: number) => 'low' | 'medium' | 'high';
 }
 
-export const useStore = create<ClinicStore>((set, get) => ({
-  patients: mockPatients,
-  assessments: mockAssessments,
-  followUpTasks: mockFollowUpTasks,
-  alerts: mockAlerts,
+export const useStore = create<ClinicStore>()(
+  persist(
+    (set, get) => ({
+      patients: mockPatients,
+      assessments: mockAssessments,
+      followUpTasks: mockFollowUpTasks,
+      alerts: mockAlerts,
 
-  addPatient: (patient) =>
-    set((state) => ({ patients: [...state.patients, patient] })),
+      addPatient: (patient) =>
+        set((state) => ({ patients: [...state.patients, patient] })),
 
-  updatePatient: (id, data) =>
-    set((state) => ({
-      patients: state.patients.map((p) => (p.id === id ? { ...p, ...data } : p)),
-    })),
+      updatePatient: (id, data) =>
+        set((state) => ({
+          patients: state.patients.map((p) => (p.id === id ? { ...p, ...data } : p)),
+        })),
 
-  addAssessment: (assessment) =>
-    set((state) => ({ assessments: [...state.assessments, assessment] })),
+      addAssessment: (assessment) =>
+        set((state) => ({ assessments: [...state.assessments, assessment] })),
 
-  getPatientAssessments: (patientId) =>
-    get().assessments.filter((a) => a.patientId === patientId),
+      getPatientAssessments: (patientId) =>
+        get().assessments.filter((a) => a.patientId === patientId),
 
-  addFollowUpTask: (task) =>
-    set((state) => ({ followUpTasks: [...state.followUpTasks, task] })),
+      addFollowUpTask: (task) =>
+        set((state) => ({ followUpTasks: [...state.followUpTasks, task] })),
 
-  updateFollowUpTask: (id, data) =>
-    set((state) => ({
-      followUpTasks: state.followUpTasks.map((t) =>
-        t.id === id ? { ...t, ...data } : t
-      ),
-    })),
+      updateFollowUpTask: (id, data) =>
+        set((state) => ({
+          followUpTasks: state.followUpTasks.map((t) =>
+            t.id === id ? { ...t, ...data } : t
+          ),
+        })),
 
-  addAlert: (alert) =>
-    set((state) => ({ alerts: [...state.alerts, alert] })),
+      addAlert: (alert) =>
+        set((state) => ({ alerts: [...state.alerts, alert] })),
 
-  resolveAlert: (id) =>
-    set((state) => ({
-      alerts: state.alerts.map((a) =>
-        a.id === id ? { ...a, isResolved: true, resolvedAt: new Date().toISOString() } : a
-      ),
-    })),
+      resolveAlert: (id) =>
+        set((state) => ({
+          alerts: state.alerts.map((a) =>
+            a.id === id ? { ...a, isResolved: true, resolvedAt: new Date().toISOString() } : a
+          ),
+        })),
 
-  getRiskLevel: (score) => {
-    if (score <= 5) return 'low';
-    if (score <= 10) return 'medium';
-    return 'high';
-  },
-}));
+      getRiskLevel: (score) => {
+        if (score <= 5) return 'low';
+        if (score <= 10) return 'medium';
+        return 'high';
+      },
+    }),
+    {
+      name: 'sleep-clinic-storage',
+    }
+  )
+);

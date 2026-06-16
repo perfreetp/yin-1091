@@ -113,7 +113,7 @@ const EMPTY_MEDICATION: MedicationRecord = {
 export default function Assessment() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { patients, addAssessment, updatePatient, getPatientAssessments, getRiskLevel } = useStore();
+  const { patients, addAssessment, updatePatient, addFollowUpTask, getPatientAssessments, getRiskLevel } = useStore();
 
   const [selectedPatientId, setSelectedPatientId] = useState('');
   const [scores, setScores] = useState<Record<string, number>>({
@@ -245,6 +245,18 @@ export default function Assessment() {
     updatePatient(patientId, {
       riskLevel,
       nextVisitDate: recommendedVisitDate,
+    });
+    addFollowUpTask({
+      id: `FU${Date.now()}`,
+      patientId,
+      type: 'visit',
+      status: 'pending',
+      scheduledDate: recommendedVisitDate,
+      completedDate: null,
+      result: null,
+      needsExtraVisit: false,
+      doctorConclusion: null,
+      createdBy: '王医生',
     });
     navigate('/patients');
   }

@@ -88,14 +88,16 @@ export default function Reports() {
   }, [filteredAssessments]);
 
   const scoreDistribution = useMemo(() => {
-    const patientLatestScores: Record<string, number> = {};
+    const patientLatestDate: Record<string, string> = {};
+    const patientLatestScore: Record<string, number> = {};
     filteredAssessments.forEach((a) => {
-      const existing = patientLatestScores[a.patientId];
-      if (!existing || a.createdAt > (existing as any)) {
-        patientLatestScores[a.patientId] = a.totalScore;
+      const prev = patientLatestDate[a.patientId];
+      if (!prev || a.createdAt > prev) {
+        patientLatestDate[a.patientId] = a.createdAt;
+        patientLatestScore[a.patientId] = a.totalScore;
       }
     });
-    const scores = Object.values(patientLatestScores);
+    const scores = Object.values(patientLatestScore);
     return SCORE_RANGES.map((range) => ({
       range: range.label,
       count: scores.filter((s) => s >= range.min && s <= range.max).length,
